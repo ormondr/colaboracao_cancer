@@ -1,0 +1,40 @@
+ #Script para controle de qualidade de dados de genotipagem.
+#PLINK v2.00a4 64-bit (9 Jan 2023) ##principal utilizado
+#PLINK v1.90b7 64-bit (16 Jan 2023)
+#por Rafaella Ormond, adaptado da Jessica Mauer
+
+#OPCIONAL: Adicionar fenótipo (para datasets em que a última coluna do .fam estiver -9, ou missing): em que phenotype_arq.txt é um arquivo texto com o FID, ID da amostra e fenótipo em 3 colunas respectivamente
+
+plink2 --vcf arq_genotype --pheno phenotype_arq.txt --pheno-merge --make-bed --out arq_phenotype
+
+#OPCIONAL Arrumar Family ID (caso o FID no .fam esteja diferente p/ cada indivíduo. o certo é ser 0 para todos) 
+awk '{print $1, $2, $3, $2}' arq_phenotype.fam > upd_fam.txt
+
+#conferir se a terceira coluna no upd_fam.txt é toda 0 e os ids na segunda e quarta coluna estão iguais, em seguida:
+plink2 --bfile arq_phenotype --update-ids upd_fam.txt --make-bed --out arq_phenotype_fid
+
+
+#2) Filtros
+
+#filtrar MAF (frequência do menor alelo), GENO (taxa de SNPs n genotipados) e HWE (eq. Hardy-Weinberg)
+plink2 --bfile arq_semindels --maf 0.01 --geno 0.1 --hwe 0.000001 --make-bed --out arq_genotype_QC
+plink2 --bfile arq_genotype_QC --mind 0.1 --make-bed --out arq_genotype_QC_mind
+
+#3) Sex-check
+##essa parte eu faço com plink1.9 (chamando por "plink" pq nao achei as flags correspondentes no plink2)
+#Separar a parte homóloga XY (baseado no hg 19 que é o pedido pelo Sanger Imputation)
+plink --bfile arq_genotype_QC --split-x b37 --make-bed --out arq_genotype_split
+
+#comentario teste
+
+### OBS: se o plink não deixar porque já existe uma região ‘XY’, fazer
+plink --bfile arq_genotype_QC --merge-x --make-bed --out arq_genotype_merge
+plink --bfile arq_genotype_merge --split-x b37 --make-bed --out arq_genotype_split
+
+#sexcheck de fato
+plink --bfile arq_genotype_split --check-sex --out arq_sexcheck
+
+#ver o no. de PROBLEM no arquivo .sexcheck
+#Abrir os outputs no R e plotar gráfico F statistic por sex label (dotchart(banco$F)). Se quase todos os pontos masculinos estiverem agrupados à direita e os femininos mais separados à esquerda, está correta a distribuicao.
+#OBS: para o conjunto de dados BHRC não excluí nenhum indivíduo pois deram apenas 5 indivíduos discordantes e a distribuição pelo gráfico estava adequada (indivíduos femininos discordantes estavam próximo do threshold 0.2)
+
