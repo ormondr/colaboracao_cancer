@@ -16,13 +16,16 @@ plink2 --bfile arq_phenotype --update-ids upd_fam.txt --make-bed --out arq_pheno
 
 #2) Filtros
 
-#filtrar MAF (frequência do menor alelo), GENO (taxa de SNPs n genotipados) e HWE (eq. Hardy-Weinberg)
-plink2 --bfile arq_semindels --maf 0.01 --geno 0.1 --hwe 0.000001 --make-bed --out arq_genotype_QC
+#filtrar GENO (taxa de SNPs n genotipados) e HWE (eq. Hardy-Weinberg) e mind 
+#nao filtrei por MAF (frequência do menor alelo)
+plink2 --bfile arq_semindels --geno 0.1 --hwe 0.000001 --make-bed --out arq_genotype_QC
 plink2 --bfile arq_genotype_QC --mind 0.1 --make-bed --out arq_genotype_QC_mind
 
 #3) Sex-check
 ##essa parte eu faço com plink1.9 (chamando por "plink" pq nao achei as flags correspondentes no plink2)
-#Separar a parte homóloga XY (baseado no hg 19 que é o pedido pelo Sanger Imputation)
+
+
+#Separar a parte homóloga XY (baseado no hg 19 que é o pedido pelo Sanger Imputation) ## o meu nao é 19 entao fix ainda 
 plink --bfile arq_genotype_QC --split-x b37 --make-bed --out arq_genotype_split
 
 #comentario teste
