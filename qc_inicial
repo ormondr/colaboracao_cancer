@@ -17,7 +17,6 @@ plink2 --bfile arq_phenotype --update-ids upd_fam.txt --make-bed --out arq_pheno
 #2) Filtros
 
 #filtrar GENO (taxa de SNPs n genotipados) e HWE (eq. Hardy-Weinberg) e mind 
-#nao filtrei por MAF (frequência do menor alelo)
 plink2 --bfile arq_semindels --geno 0.1 --hwe 0.000001 --make-bed --out arq_genotype_QC
 plink2 --bfile arq_genotype_QC --mind 0.1 --make-bed --out arq_genotype_QC_mind
 
