@@ -58,7 +58,7 @@ for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_chr${i}_pre2 
 
 for i in {1..22}; do plink2 --bfile alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i} –maf 0.001 --geno 0.1 --hwe 0.000001 --make-bed --out alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qc1 ; done
 
-for i in {1..22}; do plink2 --bfile alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qc1 --mind 0.1 --make-bed --out alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qced; done
+for i in {1..22}; do plink2 --bfile alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qc1 --mind 0.1 --make-bed --out alvo_ref_nat_eur_afr_jap/ac_5placas_refs4anc_chr${i}_QCed; done
 
 ### calculo de ancestralidade GLOBAL
 
