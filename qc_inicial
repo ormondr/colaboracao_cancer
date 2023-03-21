@@ -1,42 +1,66 @@
- #Script para controle de qualidade de dados de genotipagem.
-#PLINK v2.00a4 64-bit (9 Jan 2023) ##principal utilizado
-#PLINK v1.90b7 64-bit (16 Jan 2023)
-#por Rafaella Ormond, adaptado da Jessica Mauer
-
-#OPCIONAL: Adicionar fenótipo (para datasets em que a última coluna do .fam estiver -9, ou missing): em que phenotype_arq.txt é um arquivo texto com o FID, ID da amostra e fenótipo em 3 colunas respectivamente
-
-plink2 --vcf arq_genotype --pheno phenotype_arq.txt --pheno-merge --make-bed --out arq_phenotype
-
-#OPCIONAL Arrumar Family ID (caso o FID no .fam esteja diferente p/ cada indivíduo. o certo é ser 0 para todos) 
-awk '{print $1, $2, $3, $2}' arq_phenotype.fam > upd_fam.txt
-
-#conferir se a terceira coluna no upd_fam.txt é toda 0 e os ids na segunda e quarta coluna estão iguais, em seguida:
-plink2 --bfile arq_phenotype --update-ids upd_fam.txt --make-bed --out arq_phenotype_fid
+ 
+# excluir positions duplicadas e separar o alvo por cromossomos 
+# fazer isso para as duas coortes
 
 
-#2) Filtros
+##só listei e não excclui nenhuma pois não tinha
 
-#filtrar GENO (taxa de SNPs n genotipados) e HWE (eq. Hardy-Weinberg) e mind 
-plink2 --bfile arq_semindels --geno 0.1 --hwe 0.000001 --make-bed --out arq_genotype_QC
-plink2 --bfile arq_genotype_QC --mind 0.1 --make-bed --out arq_genotype_QC_mind
+for i in {1..22}; do plink --bfile ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i} --list-duplicate-vars; done
 
-#3) Sex-check
-##essa parte eu faço com plink1.9 (chamando por "plink" pq nao achei as flags correspondentes no plink2)
+for i in {1..22}; do plink2 --bfile alvo_cancer_plink/dirce_5placas_chr${i} --list-duplicate-vars; done
+
+#Garantindo o mesmo num de SNPS nos dois arquivos e garantindos que nao há alelos trocados
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_chr${i} --extract ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}.bim --make-bed --out alvo_cancer_plink/dirce_5placas_chr${i}_pre; done
+
+for i in {1..22}; do plink --bfile ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i} --extract alvo_cancer_plink/dirce_5placas_chr${i}.bim --make-bed --out ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_pre; done
+
+#Extraindo as multialelicas antes de realizar o merge
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_chr${i}_pre --snps-only just-acgt --make-bed --out alvo_cancer_plink/dirce_5placas_chr${i}_pre2; done
+
+for i in {1..22}; do plink --bfile ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_pre --snps-only just-acgt --make-bed --out ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_pre2; done
+
+# Juntando e fazendo o QC para ser utilizado depois para o ADMIXTURE.
+#Juntar os arquivos, alvo e referência
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_chr${i}_pre2 --bmerge ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_pre2 --make-bed --out alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}; done
+
+##### Quando há pelo menos uma variante com mais de 2 alelos, é gerada uma lista de variantes em plink.missnp
+
+# Nesse caso, como não gerou esse arquivo em todos os cromossomos, resolvemos excluir esses snps 
+
+#Primeiro eu copiei os arquivos dos cromossomos que precisaria excluir como “cmissnp”, isso pro bed, bim e fam, ex:
+#fiz isso para os cromossomos 19, 18, 17, 14, 12, 11, 9, 8, 7, 6, 5, 2, 1
+#fiz tanto na amostra ref quanto na alvo
+cp ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr19_pre2.bed ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr19_cmissnp.bed
+
+cp ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr19_pre2.bim ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr19_cmissnp.bim
+
+cp ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr19_pre2.fam ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr19_cmissnp.fam
 
 
-#Separar a parte homóloga XY (baseado no hg 19 que é o pedido pelo Sanger Imputation) ## o meu nao é 19 entao fix ainda 
-plink --bfile arq_genotype_QC --split-x b37 --make-bed --out arq_genotype_split
 
-#comentario teste
+##aqui eu excluo os arquivos gerados no missnp, como eu coloco em loop, os cromossomos que não geraram vao dar erro, mas tudo bem
+#salvei os arquivos que tinham missnps como estava antes 
 
-### OBS: se o plink não deixar porque já existe uma região ‘XY’, fazer
-plink --bfile arq_genotype_QC --merge-x --make-bed --out arq_genotype_merge
-plink --bfile arq_genotype_merge --split-x b37 --make-bed --out arq_genotype_split
+for i in {1..22}; do plink --bfile ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_cmissnp --exclude alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}-merge.missnp --make-bed --out ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_pre2; done
 
-#sexcheck de fato
-plink --bfile arq_genotype_split --check-sex --out arq_sexcheck
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_chr${i}_cmissnp --exclude alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}-merge.missnp --make-bed --out alvo_cancer_plink/dirce_5placas_chr${i}_pre2; done
 
-#ver o no. de PROBLEM no arquivo .sexcheck
-#Abrir os outputs no R e plotar gráfico F statistic por sex label (dotchart(banco$F)). Se quase todos os pontos masculinos estiverem agrupados à direita e os femininos mais separados à esquerda, está correta a distribuicao.
-#OBS: para o conjunto de dados BHRC não excluí nenhum indivíduo pois deram apenas 5 indivíduos discordantes e a distribuição pelo gráfico estava adequada (indivíduos femininos discordantes estavam próximo do threshold 0.2)
+##agora eu junto os dois arquivos p[ara finalmente fazer o qc 
 
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_chr${i}_pre2 --bmerge ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i}_pre2 --make-bed --out alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}; done
+
+
+##faço um controle de qualidade básico e no maf eu só tiro as vars muito raras
+
+
+for i in {1..22}; do plink2 --bfile alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i} –maf 0.001 --geno 0.1 --hwe 0.000001 --make-bed --out alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qc1 ; done
+
+for i in {1..22}; do plink2 --bfile alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qc1 --mind 0.1 --make-bed --out alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr${i}_qced; done
+
+### calculo de ancestralidade GLOBAL
+
+
+/mnt/genetica_1/Phasing/admixture_linux-1.3.0/admixture alvo_ref_nat_eur_afr_jap/pre_ac_5placas_refs4anc_chr22_qced.bed 4 -j12
