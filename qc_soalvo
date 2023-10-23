@@ -20,7 +20,10 @@ for i in {1..22}; do plink2 --bfile alvo_cancer_plink/dirce_5placas_bruto --allo
 ##limpar sujeiras nos nomes dos cromossomos
 
 
-##só listei e não excclui nenhuma pois não tinha
+##listei e exclui 
 
-for i in {1..22}; do plink --bfile ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i} --list-duplicate-vars; done
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i} --list-duplicate-vars --out dup_chr${i}; done
 
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i} --exclude dup_chr${i}.dupvar --make-bed --out ./alvo_cancer_plink/preqc1_dirce_5placas_bruto_chr${i} ; done
+
+##
