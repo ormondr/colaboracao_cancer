@@ -1,1 +1,26 @@
+########## havia feito essa parte para fazer o admixture, mas só tinha o qc da amostra juntada, aqui ja vou fazer separa que é melhor
+
+############ essa parte igual ao admixture ##########
+
+ # editar o bim tanto do alvo quanto da referência, pois precisam estar com o mesmo padrão. Primeiro salvei os arquivos para "_ori" e depois salvei com o mesmo nome que estava antes. Para evitar problema de alelos trocados, variantes foram renomeadas já com alelo 1 e 2, em ordem
+#aqui eu so editei do alvo, tambem editei o fam pois primeira e segunda colunas estavam com IDs
+
+awk '{print $1 , $1":"$4 , $3 , $4 , $5 , $6}' alvo_cancer_plink/ori_dirce_5placas_bruto.bim > alvo_cancer_plink/dirce_5placas_bruto.bim 
+awk '{print "0" , $2 , $3 , $4 , $5 , $6}' alvo_cancer_plink/ori_dirce_5placas_bruto.fam >  alvo_cancer_plink/dirce_5placas_bruto.fam
+
+##limpar sujeiras nos nomes dos cromossomos
+#vi que a maioria dos cromossomos que nao estavam certos estavam com KI, entao dei um f\gep e fui substituindo, depois salvei como antes
+
+# excluir positions duplicadas e separar o alvo por cromossomos 
+# nesse caso so precisei separar por cromossomos na amostra alvo 
+#separando o alvo por cromossomos
+
+for i in {1..22}; do plink2 --bfile alvo_cancer_plink/dirce_5placas_bruto --allow-extra-chr --chr ${i} --make-bed --out alvo_cancer_plink/dirce_5placas_bruto_chr${i}; done
+
+##limpar sujeiras nos nomes dos cromossomos
+
+
+##só listei e não excclui nenhuma pois não tinha
+
+for i in {1..22}; do plink --bfile ref_eur_nat_afr_jap/IBS_YRI_JPT_NAT_chr${i} --list-duplicate-vars; done
 
