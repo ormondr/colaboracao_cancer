@@ -26,4 +26,43 @@ for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i}
 
 for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i} --exclude dup_chr${i}.dupvar --make-bed --out ./alvo_cancer_plink/preqc1_dirce_5placas_bruto_chr${i} ; done
 
-##
+## excluindo multialelicas 
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/preqc1_dirce_5placas_bruto_chr${i} --snps-only just-acgt --make-bed --out alvo_cancer_plink/preqc2_dirce_5placas_bruto_chr${i}; done
+
+#### fazendo um qc bem basico 
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/preqc2_dirce_5placas_bruto_chr${i} --maf 0.001 --geno 0.1 --hwe 0.000001 --make-bed --out alvo_cancer_plink/preqc3_dirce_5placas_bruto_chr${i} ; done
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/preqc3_dirce_5placas_bruto_chr${i} --mind 0.1 --make-bed --out alvo_cancer_plink/dirce_5placas_bruto_chr${i}_pre1; done
+
+######### fazer update dos ids 
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i}_pre1 --update-ids espelho_ids --make-bed --out alvo_cancer_plink/dirce_5placas_bruto_chr${i}_pre2; done
+
+###### excluir amostras repetidas 
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i}_pre2 --remove ./alvo_cancer_plink/ids_repetidos --make-bed --out alvo_cancer_plink/dirce_5placas_chr${i}_pre3; done
+
+
+######## juntando as amostras em um unico arquivo 
+
+for i in {1..22}; do echo alvo_cancer_plink/dirce_5placas_chr${i}_QCed >> mergelist_accamargo.txt; done
+for i in {1..22}; do plink --merge-list mergelist_accamargo.txt --make-bed --out ./alvo_cancer_plink/accamargo_5placas_allchr_QCed; done
+
+############ na hora de juntar os chr da erro de flip 
+
+######## aqui eu excluo o que deu erro 
+
+for i in {1..22}; do plink --bfile alvo_cancer_plink/dirce_5placas_bruto_chr${i}_pre3 --exclude ./alvo_cancer_plink/accamargo_5placas_allchr_QCed-merge.missnp --make-bed --out alvo_cancer_plink/accamargo_5placas_chr${i}_QCed; done
+
+######## excluo a merge list de antes e faço de novo 
+#### mudei tambem os nomes do arquivo QCed pq achei melhor
+rm mergelist_accamargo.txt
+
+for i in {1..22}; do echo alvo_cancer_plink/accamargo_5placas_chr${i}_QCed >> mergelist_accamargo.txt; done
+for i in {1..22}; do plink --merge-list mergelist_accamargo.txt --make-bed --out ./alvo_cancer_plink/accamargo_5placas_allchr_QCed; done
+
+######## extrair as variantes de interesse 
+plink --bfile ./alvo_cancer_plink/accamargo_5placas_allchr_QCed --extract ./alvo_cancer_plink/varsalvo_para_extract --make-bed --out ./vars_farm_plink/varsfarm_accamargo_5placas_allchr_chrpos
+
+##### fazer vcf 
+plink --bfile ./vars_farm_plink/varsfarm_accamargo_5placas_allchr_chrpos --recode vcf --out ./vars_farm_plink/varsfarm_accamargo_5placas_allchr_preid
